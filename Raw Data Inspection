@@ -1,0 +1,7 @@
+import pandas as pd
+
+# Load uploaded Census dataset
+df = pd.read_csv("U.S. Census Bureau Economic Conditions_Raw.csv")
+
+# Display the first 5 rows
+display(df.head())
