@@ -1,0 +1,304 @@
+from google.colab import files
+
+uploaded = files.upload()
+
+import zipfile
+import os
+
+% Get uploaded ZIP filename
+zip_name = next(iter(uploaded))
+
+% Extract files
+with zipfile.ZipFile(zip_name, "r") as zip_ref:
+    zip_ref.extractall("USDA_Food_Access")
+
+% Display extracted files
+print(os.listdir("USDA_Food_Access"))
+import pandas as pd
+
+% Read USDA documentation
+readme = pd.read_csv("USDA_Food_Access/ReadMe.csv")
+variable_lookup = pd.read_csv("USDA_Food_Access/VariableLookup.csv")
+
+% Display documentation
+print("USDA README:")
+display(readme)
+
+print("USDA VARIABLE LOOKUP:")
+display(variable_lookup)
+
+% Load the main USDA dataset
+food_access = pd.read_csv(
+    "USDA_Food_Access/Food Access Research Atlas.csv"
+)
+
+% Check dataset dimensions
+print("Dataset dimensions:", food_access.shape)
+
+% Check the state names in the dataset
+print("State values:")
+print(food_access["State"].unique())
+
+% Check the county names
+print("\nCounty values:")
+print(
+    food_access[
+        food_access["State"].str.contains("New Mexico|NM", case=False, na=False)
+    ]["County"].unique())
+
+% Filter USDA data for Sandoval County, New Mexico
+sandoval_data = food_access[
+    (food_access["State"] == "New Mexico") &
+    (food_access["County"] == "Sandoval County")
+].copy()
+
+% Check filtered dataset
+print("Sandoval County dataset dimensions:", sandoval_data.shape)
+
+display(sandoval_data.head())
+
+% Display all Sandoval County census tract numbers
+print(sandoval_data["CensusTract"].tolist())
+
+import geopandas as gpd
+
+% Download 2010 Census geographic boundaries
+tract_url = "https://www2.census.gov/geo/tiger/TIGER2010/TRACT/2010/tl_2010_35_tract10.zip"
+
+cousub_url = "https://www2.census.gov/geo/tiger/TIGER2010/COUSUB/2010/tl_2010_35_cousub10.zip"
+
+% Read geographic files
+tracts = gpd.read_file("zip+" + tract_url)
+county_subdivisions = gpd.read_file("zip+" + cousub_url)
+
+% Inspect Cuba county subdivision names
+print(
+    county_subdivisions[
+        county_subdivisions["NAME10"].str.contains(
+            "Cuba", case=False, na=False
+        )
+    ][["NAME10", "GEOID10"]]
+)
+
+% Get Cuba CCD boundary
+cuba_boundary = county_subdivisions[
+    county_subdivisions["GEOID10"] == "3504390870"
+].copy()
+
+% Make sure both geographic datasets use the same coordinate system
+tracts = tracts.to_crs(cuba_boundary.crs)
+
+% Find census tracts that intersect Cuba CCD
+cuba_tracts = gpd.sjoin(
+    tracts,
+    cuba_boundary[["geometry"]],
+    how="inner",
+    predicate="intersects"
+)
+
+% Display matching census tracts
+print("Census tracts intersecting Cuba CCD:", len(cuba_tracts))
+
+display(cuba_tracts[["GEOID10", "NAME10"]])
+
+% Convert census tract IDs to strings for matching
+cuba_tract_ids = cuba_tracts["GEOID10"].astype(str)
+
+sandoval_data["CensusTract"] = (
+    sandoval_data["CensusTract"].astype(str)
+)
+
+% Keep only Sandoval County tracts intersecting Cuba CCD
+cuba_food_access = sandoval_data[
+    sandoval_data["CensusTract"].isin(cuba_tract_ids)
+].copy()
+
+% Display results
+print("Matching USDA census tracts:", len(cuba_food_access))
+
+display(cuba_food_access[["CensusTract", "State", "County"]])
+
+% Search USDA variable lookup for food-access indicators
+food_variables = variable_lookup[
+    variable_lookup["LongName"].str.contains(
+        "low access|low income|supermarket|vehicle",
+        case=False,
+        na=False
+    )
+]
+
+display(food_variables)
+
+% Select food-access indicators
+selected_columns = [
+    "CensusTract",
+    "County",
+    "LILATracts_1And10",
+    "LILATracts_Vehicle",
+    "HUNVFlag",
+    "TractHUNV",
+    "TractSNAP"
+]
+
+% Create a smaller analysis dataset
+food_access_analysis = cuba_food_access[selected_columns].copy()
+
+% Display results
+display(food_access_analysis)
+
+% Save selected food-access data
+food_access_analysis.to_csv(
+    "Cuba_CCD_Food_Access_Cleaned.csv",
+    index=False
+)
+
+print("Cleaned food-access dataset saved successfully!")
+import matplotlib.pyplot as plt
+
+% Prepare graph data
+tract_labels = ["Tract 1", "Tract 2", "Tract 3", "Tract 4", "Tract 5"]
+
+geoids = [
+    "35043010722",
+    "35043010723",
+    "35043010900",
+    "35043011200",
+    "35043940900"
+]
+
+no_vehicle = food_access_analysis["TractHUNV"].tolist()
+
+% Create graph
+fig, ax = plt.subplots(figsize=(11, 7))
+
+bars = ax.bar(tract_labels, no_vehicle, width=0.6)
+
+% Add values above bars
+for bar in bars:
+    height = bar.get_height()
+    ax.text(
+        bar.get_x() + bar.get_width() / 2,
+        height + 2,
+        f"{int(height)}",
+        ha="center",
+        fontsize=11
+    )
+
+% Title and axis labels
+ax.set_title(
+    "Housing Units Without Vehicles by Census Tract",
+    fontsize=15,
+    pad=15
+)
+
+ax.set_xlabel("Census Tract", fontsize=11)
+ax.set_ylabel("Number of Housing Units Without Vehicles", fontsize=11)
+
+ax.set_ylim(0, max(no_vehicle) + 20)
+ax.grid(axis="y", linestyle="--", alpha=0.4)
+
+% Geographic note
+fig.text(
+    0.5, 0.14,
+    "Note: Five full Sandoval County census tracts intersect Cuba CCD. "
+    "Counts are not limited to the Cuba CCD boundary.",
+    ha="center",
+    fontsize=9
+)
+
+% GEOID key
+geoid_text = "\n".join(
+    [f"{label}: {geoid}" for label, geoid in zip(tract_labels, geoids)]
+)
+
+fig.text(
+    0.5, 0.015,
+    geoid_text,
+    ha="center",
+    fontsize=8
+)
+
+% Layout and export
+plt.tight_layout(rect=[0, 0.27, 1, 1])
+
+plt.savefig(
+    "Graph2_Housing_Units_Without_Vehicles.png",
+    dpi=300,
+    bbox_inches="tight"
+)
+
+plt.show()import matplotlib.pyplot as plt
+
+% Prepare graph data
+tract_labels = ["Tract 1", "Tract 2", "Tract 3", "Tract 4", "Tract 5"]
+
+geoids = [
+    "35043010722",
+    "35043010723",
+    "35043010900",
+    "35043011200",
+    "35043940900"
+]
+
+snap_units = food_access_analysis["TractSNAP"].tolist()
+
+% Create graph
+fig, ax = plt.subplots(figsize=(11, 7))
+
+bars = ax.bar(tract_labels, snap_units, width=0.6)
+
+% Add values above bars
+for bar in bars:
+    height = bar.get_height()
+    ax.text(
+        bar.get_x() + bar.get_width() / 2,
+        height + 15,
+        f"{int(height):,}",
+        ha="center",
+        fontsize=11
+    )
+
+% Title and axis labels
+ax.set_title(
+    "Housing Units Receiving SNAP Benefits by Census Tract",
+    fontsize=15,
+    pad=15
+)
+
+ax.set_xlabel("Census Tract", fontsize=11)
+ax.set_ylabel("Number of Housing Units Receiving SNAP", fontsize=11)
+
+ax.set_ylim(0, max(snap_units) + 100)
+ax.grid(axis="y", linestyle="--", alpha=0.4)
+
+% Geographic note
+fig.text(
+    0.5, 0.14,
+    "Note: Five full Sandoval County census tracts intersect Cuba CCD. "
+    "Counts are not limited to the Cuba CCD boundary.",
+    ha="center",
+    fontsize=9
+)
+
+% GEOID key
+geoid_text = "\n".join(
+    [f"{label}: {geoid}" for label, geoid in zip(tract_labels, geoids)]
+)
+
+fig.text(
+    0.5, 0.015,
+    geoid_text,
+    ha="center",
+    fontsize=8
+)
+
+% Layout and export
+plt.tight_layout(rect=[0, 0.27, 1, 1])
+
+plt.savefig(
+    "Graph3_Housing_Units_Receiving_SNAP.png",
+    dpi=300,
+    bbox_inches="tight"
+)
+
+plt.show()
