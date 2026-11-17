@@ -1,0 +1,147 @@
+#Water Usage Comparison- Hydroponics
+import matplotlib.pyplot as plt
+
+# Water usage data from Barbosa et al. (2015)
+farming_methods = ["Conventional Farming", "Hydroponic Farming"]
+water_usage = [250, 20]
+error = [25, 3.8]
+
+# Calculate percentage reduction
+water_reduction = ((250 - 20) / 250) * 100
+
+# Create graph
+fig, ax = plt.subplots(figsize=(10, 6))
+
+bars = ax.bar(
+    farming_methods,
+    water_usage,
+    yerr=error,
+    capsize=8,
+    width=0.55
+)
+
+# Add values above bars
+for bar, value, uncertainty in zip(bars, water_usage, error):
+    ax.text(
+        bar.get_x() + bar.get_width() / 2,
+        value + uncertainty + 5,
+        f"{value} L/kg",
+        ha="center",
+        fontsize=12
+    )
+
+# Graph title and labels
+ax.set_title(
+    "Water Usage: Conventional vs. Hydroponic Lettuce Farming",
+    fontsize=14,
+    pad=15
+)
+
+ax.set_ylabel("Water Usage (Liters per Kilogram of Lettuce)", fontsize=11)
+
+ax.set_ylim(0, 310)
+ax.grid(axis="y", linestyle="--", alpha=0.4)
+
+# Add percentage reduction
+ax.text(
+    0.5, 0.88,
+    f"Hydroponics uses approximately {water_reduction:.0f}% less water",
+    transform=ax.transAxes,
+    ha="center",
+    fontsize=11
+)
+
+# Add source and methodology note
+fig.text(
+    0.5, 0.025,
+    "Source: Barbosa et al. (2015). Hydroponic water use is a modeled estimate.",
+    ha="center",
+    fontsize=9
+)
+
+plt.tight_layout(rect=[0, 0.07, 1, 1])
+
+# Save graph
+plt.savefig(
+    "Graph4_Water_Usage_Comparison.png",
+    dpi=300,
+    bbox_inches="tight"
+)
+
+plt.show()
+
+#Water Usage Comparison- Aquaponic
+
+
+import matplotlib.pyplot as plt
+
+# Water dependency estimates from the 2017 aquaponics
+# life-cycle assessment
+farming_methods = ["Conventional Farming", "Aquaponics"]
+water_usage = [250, 60]
+
+# Calculate percentage reduction
+water_reduction = ((250 - 60) / 250) * 100
+
+# Create graph
+fig, ax = plt.subplots(figsize=(10, 6))
+
+bars = ax.bar(
+    farming_methods,
+    water_usage,
+    width=0.55
+)
+
+# Add values above bars
+for bar, value in zip(bars, water_usage):
+    ax.text(
+        bar.get_x() + bar.get_width() / 2,
+        value + 7,
+        f"{value} L/kg",
+        ha="center",
+        fontsize=12
+    )
+
+# Title and axis labels
+ax.set_title(
+    "Water Dependency: Conventional Farming vs. Aquaponics",
+    fontsize=14,
+    pad=15
+)
+
+ax.set_ylabel(
+    "Water Dependency (Liters per Kilogram of Lettuce)",
+    fontsize=11
+)
+
+ax.set_ylim(0, 300)
+ax.grid(axis="y", linestyle="--", alpha=0.4)
+
+# Add percentage comparison
+ax.text(
+    0.5, 0.88,
+    f"Aquaponics has approximately {water_reduction:.0f}% lower water dependency",
+    transform=ax.transAxes,
+    ha="center",
+    fontsize=11
+)
+
+# Add source note
+fig.text(
+    0.5, 0.025,
+    "Source: 2017 Aquaponics Life Cycle Assessment. "
+    "Values converted from m³/kg to L/kg.",
+    ha="center",
+    fontsize=9
+)
+
+plt.tight_layout(rect=[0, 0.07, 1, 1])
+
+# Save graph
+plt.savefig(
+    "Graph4_Conventional_vs_Aquaponics_Water.png",
+    dpi=300,
+    bbox_inches="tight"
+)
+
+plt.show()
