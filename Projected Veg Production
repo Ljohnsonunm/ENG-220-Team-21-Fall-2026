@@ -1,0 +1,112 @@
+import matplotlib.pyplot as plt
+
+# ----------------------------------
+# GREENHOUSE DIMENSIONS
+# ----------------------------------
+
+greenhouse_length = 96  # feet
+greenhouse_width = 30   # feet
+
+# Convert square feet to square meters
+total_area_sqft = greenhouse_length * greenhouse_width
+total_area_m2 = total_area_sqft * 0.092903
+
+# Assume 64% of greenhouse floor area is crop-growing space
+growing_area = total_area_m2 * 0.64
+
+# Equal distribution among three crops
+crop_area = growing_area / 3
+
+# ----------------------------------
+# PUBLISHED AQUAPONICS YIELDS
+# Goda et al. (2015)
+# ----------------------------------
+
+crops = ["Lettuce", "Tomatoes", "Cucumbers"]
+
+yield_per_m2 = [2.84, 3.58, 5.14]
+
+growing_periods = [145, 80, 46]
+
+# Calculate estimated harvest per crop cycle
+production = [
+    crop_area * crop_yield
+    for crop_yield in yield_per_m2
+]
+
+# ----------------------------------
+# DISPLAY CALCULATIONS
+# ----------------------------------
+
+print("GREENHOUSE MODEL")
+print("------------------------------")
+print(f"Greenhouse size: {greenhouse_length} x {greenhouse_width} ft")
+print(f"Total floor area: {total_area_m2:.1f} m²")
+print(f"Assumed growing area: {growing_area:.1f} m²")
+print(f"Growing area per crop: {crop_area:.1f} m²")
+print()
+
+print("PROJECTED CROP PRODUCTION")
+print("------------------------------")
+
+for crop, amount, days in zip(crops, production, growing_periods):
+    print(f"{crop}: {amount:.1f} kg per crop cycle ({days} days)")
+
+print(f"\nCombined harvest across crop cycles: {sum(production):.1f} kg")
+
+# ----------------------------------
+# CREATE GRAPH
+# ----------------------------------
+
+fig, ax = plt.subplots(figsize=(10, 6))
+
+bars = ax.bar(
+    crops,
+    production,
+    width=0.55
+)
+
+# Add production values above bars
+for bar, amount, days in zip(bars, production, growing_periods):
+    ax.text(
+        bar.get_x() + bar.get_width() / 2,
+        bar.get_height() + 5,
+        f"{amount:.1f} kg\n({days} days)",
+        ha="center",
+        fontsize=10
+    )
+
+# Graph title and labels
+ax.set_title(
+    "Projected Vegetable Production in 21's Aquaponics Greenhouse",
+    fontsize=14,
+    pad=18
+)
+
+ax.set_xlabel("Vegetable Type", fontsize=11)
+ax.set_ylabel("Estimated Harvest per Crop Cycle (kg)", fontsize=11)
+
+ax.set_ylim(0, max(production) + 65)
+ax.grid(axis="y", linestyle="--", alpha=0.4)
+
+# Add greenhouse and research assumptions
+fig.text(
+    0.5, 0.025,
+    "Planning model: 30 × 96 ft greenhouse; 64% assumed growing area; "
+    "equal crop allocation.\n"
+    "Crop yields: Goda et al. (2015). Different growing periods; "
+    "not a simultaneous harvest.",
+    ha="center",
+    fontsize=8
+)
+
+plt.tight_layout(rect=[0, 0.10, 1, 1])
+
+# Save graph
+plt.savefig(
+    "Graph6_Projected_Aquaponics_Production.png",
+    dpi=300,
+    bbox_inches="tight"
+)
+
+plt.show()
