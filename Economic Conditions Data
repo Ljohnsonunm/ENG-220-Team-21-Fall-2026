@@ -1,4 +1,81 @@
+#Data Import
+  from google.colab import files
 
-from google.colab import files
+  uploaded = files.upload()
 
-uploaded = files.upload()
+#Raw Data Inspection 
+  import pandas as pd
+
+  # Load uploaded Census dataset
+  df = pd.read_csv("U.S. Census Bureau Economic Conditions_Raw.csv")
+
+  # Display the first 5 rows
+  display(df.head())
+  
+  # Check dataset size
+  print("Dataset dimensions:", df.shape)
+
+  # View column names
+  print("\nColumn names:")
+  print(df.columns.tolist())
+
+  # Check missing values
+  print("\nMissing values:")
+  print(df.isnull().sum())
+
+  # Check duplicate rows
+
+  # Display rows containing missing values
+  missing_rows = df[df.isnull().any(axis=1)]
+
+  display(missing_rows)
+
+  # Display all income categories
+  print(df["Label (Grouping)"].to_list())
+
+#Cleaning and Preprocessing
+  # Make a separate copy of the raw dataset
+  cleaned_df = df.copy()
+
+  # Remove the PERCENT ALLOCATED metadata row
+  cleaned_df = cleaned_df[
+      cleaned_df["Label (Grouping)"].str.strip() != "PERCENT ALLOCATED"
+  ].copy()
+
+  # Clean extra spaces and characters in category names
+  cleaned_df["Label (Grouping)"] = (
+    cleaned_df["Label (Grouping)"]
+    .str.replace("\xa0", " ", regex=False)
+    .str.strip()
+  )
+
+  # Reset row numbers
+  cleaned_df = cleaned_df.reset_index(drop=True)
+
+  # Check cleaned dataset
+  display(cleaned_df)
+
+  # Check remaining missing values
+  print("Remaining missing values:", cleaned_df.isnull().sum().sum())
+
+  # Check duplicate rows
+  print("Duplicate rows:", cleaned_df.duplicated().sum())
+
+#Data Verification
+  # Find the median income row
+  median_row = df[
+      df["Label (Grouping)"].str.strip() == "Median income (dollars)"
+  ]
+
+  # Display the geographic estimates and margins of error
+  columns_to_check = [
+      "Label (Grouping)",
+      "Cuba CCD, Sandoval County, New Mexico!!Households!!Estimate",
+      "Cuba CCD, Sandoval County, New Mexico!!Households!!Margin of Error",
+      "New Mexico!!Households!!Estimate",
+      "New Mexico!!Households!!Margin of Error",
+      "United States!!Households!!Estimate",
+      "United States!!Households!!Margin of Error"
+  ]
+
+  display(median_row[columns_to_check].T)
